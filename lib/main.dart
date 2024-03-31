@@ -1,8 +1,9 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:url_launcher/url_launcher.dart';
 import 'package:connectivity/connectivity.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 
 void main() {
   runApp(MyApp());
@@ -17,7 +18,44 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: NewsPage(),
+      home: LoadingScreen(),
+    );
+  }
+}
+
+class LoadingScreen extends StatefulWidget {
+  @override
+  _LoadingScreenState createState() => _LoadingScreenState();
+}
+
+class _LoadingScreenState extends State<LoadingScreen> {
+  @override
+  void initState() {
+    super.initState();
+    startLoading();
+  }
+
+  void startLoading() {
+    Timer(Duration(seconds: 5), () {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => NewsPage()),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(
+        child: Image.network(
+          'https://i.pinimg.com/originals/ee/2d/02/ee2d02c40139498879e0fd078f815dc8.gif',
+          height: 200,
+          width: 200,
+          fit: BoxFit.cover,
+        ),
+      ),
     );
   }
 }
@@ -29,6 +67,7 @@ class NewsPage extends StatefulWidget {
 
 class _NewsPageState extends State<NewsPage> {
   List<dynamic> articles = [];
+  List<dynamic> bookmarks = [];
   bool isLoading = false;
   String errorMessage = '';
 
@@ -51,6 +90,8 @@ class _NewsPageState extends State<NewsPage> {
     Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
       if (result == ConnectivityResult.none) {
         showNoConnectionDialog();
+      } else {
+        fetchNews(); // Fetch news if connection is regained
       }
     });
   }
@@ -78,18 +119,9 @@ class _NewsPageState extends State<NewsPage> {
           ),
           actions: <Widget>[
             TextButton(
-              child: Text('Retry'),
-              onPressed: () {
-                Navigator.of(context).pop();
-                checkConnectivity();
-              },
-            ),
-            TextButton(
               child: Text('Close'),
               onPressed: () {
                 Navigator.of(context).pop();
-                // Optionally, you can close the app when the user chooses to close the dialog
-                // SystemNavigator.pop();
               },
             ),
           ],
@@ -104,7 +136,7 @@ class _NewsPageState extends State<NewsPage> {
       errorMessage = '';
     });
 
-    final apiKey = '6173ddd0c15d46aeaa6fe39785e6a0f1';
+    final apiKey = '6173ddd0c15d46aeaa6fe39785e6a0f1'; // Replace with your API key
     final apiUrl =
         'https://newsapi.org/v2/top-headlines?country=us&category=$selectedCategory&apiKey=$apiKey';
 
@@ -130,155 +162,79 @@ class _NewsPageState extends State<NewsPage> {
     }
   }
 
+  void toggleBookmark(int index) {
+    setState(() {
+      final article = articles[index];
+      final bool isBookmarked = bookmarks.contains(article);
+      if (isBookmarked) {
+        bookmarks.remove(article);
+      } else {
+        bookmarks.add(article);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('25 News'),
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: <Widget>[
-            DrawerHeader(
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Expanded(
               child: Text(
-                'Categories',
-                style: TextStyle(color: Colors.white, fontSize: 24),
-              ),
-              decoration: BoxDecoration(
-                color: Colors.blue,
-              ),
-            ),
-            for (var category in categories)
-              ListTile(
-                title: Text(category[0].toUpperCase() + category.substring(1)),
-                selected: category == selectedCategory,
-                onTap: () {
-                  setState(() {
-                    selectedCategory = category;
-                  });
-                  fetchNews();
-                  Navigator.pop(context);
-                },
-              ),
-          ],
-        ),
-      ),
-      body: isLoading
-          ? Center(child: CircularProgressIndicator())
-          : errorMessage.isNotEmpty
-          ? Center(child: Text(errorMessage))
-          : ListView.builder(
-        itemCount: articles.length,
-        itemBuilder: (context, index) {
-          final article = articles[index];
-          return ArticleTile(
-            title: article['title'] ?? '',
-            description: article['description'] ?? '',
-            imageUrl: article['urlToImage'] ?? '',
-            url: article['url'] ?? '',
-          );
-        },
-      ),
-    );
-  }
-}
-
-class ArticleTile extends StatelessWidget {
-  final String title;
-  final String description;
-  final String imageUrl;
-  final String url;
-
-  ArticleTile({
-    required this.title,
-    required this.description,
-    required this.imageUrl,
-    required this.url,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        _launchURL(url);
-      },
-      child: Card(
-        margin: EdgeInsets.all(8.0),
-        elevation: 2.0,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            _buildImageWidget(),
-            Padding(
-              padding: EdgeInsets.all(8.0),
-              child: Text(
-                title,
+                'MC News',
+                textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 18.0,
+                  fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8.0),
-              child: Text(
-                description.isNotEmpty ? description : 'No description available',
-                style: TextStyle(fontSize: 16.0),
-              ),
-            ),
           ],
+        ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 0,
+        onTap: (int index) {
+          // Handle navigation
+          if (index == 1) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => BookmarkPage(bookmarks: bookmarks)),
+            );
+          }
+        },
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.bookmark),
+            label: 'Bookmark',
+          ),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: () => fetchNews(),
+        child: isLoading
+            ? Center(child: CircularProgressIndicator())
+            : errorMessage.isNotEmpty
+            ? Center(child: Text(errorMessage))
+            : SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildCategories(),
+              _buildBreakingNews(),
+              _buildRecommendations(),
+            ],
+          ),
         ),
       ),
     );
   }
-
-  Widget _buildImageWidget() {
-    if (imageUrl.isNotEmpty) {
-      return Image.network(
-        imageUrl,
-        height: 200.0,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return Container(
-            color: Colors.grey,
-            height: 200.0,
-            child: Center(
-              child: Icon(
-                Icons.error,
-                color: Colors.white,
-              ),
-            ),
-          );
-        },
-      );
-    } else {
-      return Container(
-          color: Colors.grey,
-          height: 200.0,
-          child: Center(
-          child: Text(
-
-            'Image not available',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16.0,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          ),
-      );
-    }
-  }
-
-  void _launchURL(String url) async {
-    if (await canLaunch(url)) {
-      await launch(url);
-    } else {
-      throw 'Could not launch $url';
-    }
-  }
-}
 
   Widget _buildCategories() {
     return SingleChildScrollView(
@@ -465,6 +421,7 @@ class ArticleTile extends StatelessWidget {
     );
   }
 }
+
 class NewsDetailsPage extends StatelessWidget {
   final dynamic article;
 
