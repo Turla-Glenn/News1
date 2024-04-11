@@ -129,3 +129,109 @@ class _NewsPageState extends State<NewsPage> {
       },
     );
   }
+
+  Future<void> fetchNews() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = '';
+    });
+
+    final apiKey = '6173ddd0c15d46aeaa6fe39785e6a0f1'; // Replace with your API key
+    final apiUrl =
+        'https://newsapi.org/v2/top-headlines?country=us&category=$selectedCategory&apiKey=$apiKey';
+
+    try {
+      final response = await http.get(Uri.parse(apiUrl));
+      if (response.statusCode == 200) {
+        setState(() {
+          articles = json.decode(response.body)['articles'];
+        });
+      } else {
+        setState(() {
+          errorMessage = 'Failed to load news';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Failed to connect to the server';
+      });
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  void toggleBookmark(int index) {
+    setState(() {
+      final article = articles[index];
+      final bool isBookmarked = bookmarks.contains(article);
+      if (isBookmarked) {
+        bookmarks.remove(article);
+      } else {
+        bookmarks.add(article);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Text(
+                'MC News',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 0,
+        onTap: (int index) {
+          // Handle navigation
+          if (index == 1) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => BookmarkPage(bookmarks: bookmarks)),
+            );
+          }
+        },
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.bookmark),
+            label: 'Bookmark',
+          ),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: () => fetchNews(),
+        child: isLoading
+            ? Center(child: CircularProgressIndicator())
+            : errorMessage.isNotEmpty
+            ? Center(child: Text(errorMessage))
+            : SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildCategories(),
+              _buildBreakingNews(),
+              _buildRecommendations(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
