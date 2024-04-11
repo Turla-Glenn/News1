@@ -59,3 +59,73 @@ class _LoadingScreenState extends State<LoadingScreen> {
     );
   }
 }
+
+class NewsPage extends StatefulWidget {
+  @override
+  _NewsPageState createState() => _NewsPageState();
+}
+
+class _NewsPageState extends State<NewsPage> {
+  List<dynamic> articles = [];
+  List<dynamic> bookmarks = [];
+  bool isLoading = false;
+  String errorMessage = '';
+
+  List<String> categories = [
+    'general',
+    'business',
+    'entertainment',
+    'health',
+    'science',
+    'sports',
+    'technology'
+  ];
+  String selectedCategory = 'general';
+
+  @override
+  void initState() {
+    super.initState();
+    fetchNews();
+    checkConnectivity();
+    Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
+      if (result == ConnectivityResult.none) {
+        showNoConnectionDialog();
+      } else {
+        fetchNews(); // Fetch news if connection is regained
+      }
+    });
+  }
+
+  Future<void> checkConnectivity() async {
+    var connectivityResult = await Connectivity().checkConnectivity();
+    if (connectivityResult == ConnectivityResult.none) {
+      showNoConnectionDialog();
+    }
+  }
+
+  Future<void> showNoConnectionDialog() async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('No Connection Found'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text('Please check your internet connection and try again.'),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Close'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
