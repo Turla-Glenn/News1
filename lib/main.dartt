@@ -235,3 +235,122 @@ class _NewsPageState extends State<NewsPage> {
       ),
     );
   }
+
+
+  Widget _buildCategories() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: categories
+            .map(
+              (category) => Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  selectedCategory = category;
+                });
+                fetchNews();
+              },
+              child: Text(category),
+            ),
+          ),
+        )
+            .toList(),
+      ),
+    );
+  }
+
+  Widget _buildBreakingNews() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Text(
+            'Breaking News',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        CarouselSlider(
+          options: CarouselOptions(
+            height: 200.0,
+            enableInfiniteScroll: true,
+            enlargeCenterPage: true,
+            viewportFraction: 0.9,
+            autoPlay: true,
+          ),
+          items: articles.map((article) {
+            return Builder(
+              builder: (BuildContext context) {
+                return GestureDetector(
+                  onTap: () {
+                    _showNewsDetails(article);
+                  },
+                  child: Card(
+                    margin: EdgeInsets.symmetric(horizontal: 8.0),
+                    elevation: 2.0,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: Stack(
+                            alignment: Alignment.topRight,
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  image: DecorationImage(
+                                    image: NetworkImage(
+                                      article['urlToImage'] ?? '',
+                                    ),
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                icon: Icon(
+                                  bookmarks.contains(article)
+                                      ? Icons.bookmark
+                                      : Icons.bookmark_border,
+                                  color: bookmarks.contains(article)
+                                      ? Colors.yellow
+                                      : null,
+                                ),
+                                onPressed: () {
+                                  toggleBookmark(articles.indexOf(article));
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Text(
+                            article['title'] ?? '',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                          child: Text(
+                            article['description'] ?? '',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
