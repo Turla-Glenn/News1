@@ -361,3 +361,36 @@ class NewsDetailsPage extends StatelessWidget {
     );
   }
 }
+
+class BookmarkPage extends StatelessWidget {
+  final List<dynamic> bookmarks;
+
+  BookmarkPage({required this.bookmarks});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Bookmarks'),
+      ),
+      body: ListView.builder(
+        itemCount: bookmarks.length,
+        itemBuilder: (context, index) {
+          return ListTile(
+            title: Text(bookmarks[index]['title'] ?? ''),
+            subtitle: Text(bookmarks[index]['description'] ?? ''),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      NewsDetailsPage(article: bookmarks[index]),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
